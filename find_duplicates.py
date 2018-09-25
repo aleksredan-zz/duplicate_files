@@ -81,6 +81,7 @@ def check_same_hashes(df: pd.DataFrame):
     for i in range(len(df.index)):
         df.loc[i,'hash'] = file_hash(df.loc[i,'path'])
     df = check_same(df,'hash')
+    df = df[df['hash'] == 0]
     df = df.drop(['hash'], axis=1)
     return df 
 
