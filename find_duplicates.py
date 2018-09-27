@@ -80,8 +80,8 @@ def check_same_filesizes(df: pd.DataFrame):
 def check_same_hashes(df: pd.DataFrame):
     for i in range(len(df.index)):
         df.loc[i,'hash'] = file_hash(df.loc[i,'path'])
+    df = df[df.hash != '0']
     df = check_same(df,'hash')
-    df = df[df['hash'] == 0]
     df = df.drop(['hash'], axis=1)
     return df 
 
@@ -99,7 +99,14 @@ def file_hash(path: str, blocksize = 65536):
         file_hash = '0'
     return file_hash
 
-def find_duplicates(paths: list)-> pd.DataFrame: 
+def check_same_names(df: pd.DataFrame):
+    for i in range(len(df.index)):
+        df.loc[i,'file_name'] = os.path.basename(df.loc[i,'path'])
+    df = check_same(df,'file_name')
+    df = df.drop(['file_name'], axis=1)
+    return df
+
+def find_duplicates(paths: list, names: bool=False)-> pd.DataFrame: 
     df = pd.DataFrame()
     for path in paths:
         df_temp = create_path_size_df(path,silent=True)
@@ -114,6 +121,10 @@ def find_duplicates(paths: list)-> pd.DataFrame:
     df = check_same_hashes(df)
     second_check = len(df.index)
     print(f'{second_check/total_files*100}% of analised files are duplicates (have the same hash, even if the name is different). It\'s {second_check/first_check*100}% of checked hashes.')
+    if names:
+        df = check_same_names(df)
+        third_check = len(df.index)
+        print(f'{third_check/total_files*100}% of analised files are duplicates (have the same hash and the name).')
     df = sort_duplicate_results(df)
     return df
 
@@ -128,7 +139,8 @@ def sort_duplicate_results(df: pd.DataFrame, big_to_small: bool=True)-> pd.DataF
 
 def main():
     paths = read_paths()
-    data = find_duplicates(paths)
+    check_names = get_bool('do you want to include only files with the same names (1) or not (0)?')
+    data = find_duplicates(paths, check_names)
     data.to_csv('duplicates.csv')
 
 main()
